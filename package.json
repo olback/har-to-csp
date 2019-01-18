@@ -2,13 +2,17 @@
   "name": "har",
   "version": "1.0.0",
   "description": "",
-  "main": "main.js",
+  "main": "out/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc -p ./",
+    "watch": "tsc -p ./ -watch",
+    "start": "node out/main"
   },
   "author": "olback",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
+    "@types/node": "^10.12.18",
+    "typescript": "^3.2.4",
     "url": "^0.11.0"
   }
 }
