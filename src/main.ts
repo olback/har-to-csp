@@ -1,6 +1,6 @@
 import * as url from 'url';
 
-const data = require('../har.json');
+const data: Har.Dump = require('../har.json');
 const baseRequest = url.parse(data.log.pages[0].title);
 
 const quotedWords = [
@@ -16,7 +16,7 @@ const csp: CspObject = {
 
 console.log(`Generating CSP for ${baseRequest.hostname}.`);
 
-function getHeader(headers: Header[], name: string): string | null {
+function getHeader(headers: Har.Header[], name: string): string | null {
 
     for (const h of headers) {
 
@@ -32,7 +32,7 @@ function getHeader(headers: Header[], name: string): string | null {
 
 function getContentTypeOption(mime: string): string {
 
-    const m = mime.split(';')[0]
+    const m = mime.split(';')[0];
 
     switch (true) {
 
@@ -110,4 +110,3 @@ for (const e of data.log.entries) {
 }
 
 console.log(generateCspString(csp));
-// console.log(csp);
