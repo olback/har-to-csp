@@ -1,13 +1,15 @@
 {
-  "name": "har",
+  "name": "har2csp",
   "version": "1.0.0",
-  "description": "",
+  "description": "Generate a CSP from a HAR Dump",
   "main": "out/main.js",
   "scripts": {
     "build": "tsc -p ./",
     "watch": "tsc -p ./ -watch",
-    "start": "node out/main"
+    "start": "node out/main",
+    "postinstall": "npm run build"
   },
+  "bin": "out/main.js",
   "author": "olback",
   "license": "MIT",
   "dependencies": {

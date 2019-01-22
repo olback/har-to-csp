@@ -1,6 +1,15 @@
-import * as url from 'url';
+#!/usr/bin/node
 
-const data: Har.Dump = require('../har.json');
+import * as url from 'url';
+import * as path from 'path';
+import { argv, cwd, exit } from 'process';
+
+if (typeof argv[2] === 'undefined') {
+    console.log('Usage: har2csp <input-file.json>');
+    exit(1);
+}
+
+const data: Har.Dump = require(path.join(cwd(), argv[2]));
 const baseRequest = url.parse(data.log.pages[0].title);
 
 const quotedWords = [
@@ -105,7 +114,6 @@ for (const e of data.log.entries) {
     for (const p in csp) {
         csp[p] = [... new Set(csp[p])];
     }
-
 
 }
 
