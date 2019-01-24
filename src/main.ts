@@ -2,14 +2,15 @@
 
 import * as url from 'url';
 import * as path from 'path';
+import * as fs from 'fs';
 import { argv, cwd, exit } from 'process';
 
 if (typeof argv[2] === 'undefined') {
-    console.log('Usage: har2csp <input-file.json>');
+    console.log('Usage: har2csp <input-file>');
     exit(1);
 }
 
-const data: Har.Dump = require(path.join(cwd(), argv[2]));
+const data: Har.Dump = JSON.parse(fs.readFileSync(path.join(cwd(), argv[2]), 'utf8'));
 const baseRequest = url.parse(data.log.pages[0].title);
 
 const quotedWords = [
@@ -41,7 +42,7 @@ function getHeader(headers: Har.Header[], name: string): string | null {
 
 function getContentTypeOption(mime: string): string {
 
-    const m = mime.split(';')[0];
+    const m = mime.split(';')[0]; // TODO: remove this?
 
     switch (true) {
 
