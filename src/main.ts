@@ -5,14 +5,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { argv, cwd, exit } from 'process';
 
-if (typeof argv[2] === 'undefined') {
-    console.log('Usage: har2csp <input-file>');
-    exit(1);
-}
-
-const data: Har.Dump = JSON.parse(fs.readFileSync(path.join(cwd(), argv[2]), 'utf8'));
-const baseRequest = url.parse(data.log.pages[0].title);
-
+// Words that need single quotes in a valid CSP.
 const quotedWords = [
     'none',
     'self',
@@ -20,18 +13,32 @@ const quotedWords = [
     'unsafe-eval'
 ];
 
+// This is the CSP Object. This is where you set default values.
 const csp: CspObject = {
     'default-src': ['none']
 }
 
-console.log(`Generating CSP for ${baseRequest.hostname}.`);
+// Check if an argument was passed. If not, exit with an non-zero exit code.
+if (typeof argv[2] === 'undefined') {
+    console.log('Usage: har2csp <input-file>');
+    exit(1);
+}
 
+// Open, read and parse the file.
+const data: Har.Dump = JSON.parse(fs.readFileSync(path.join(cwd(), argv[2]), 'utf8'));
+
+// Get the base request.
+const baseRequest = url.parse(data.log.pages[0].title);
+
+console.log(`Generating CSP for ${baseRequest.host}.`);
+
+// Get header value. If the header does not exist, return null.
 function getHeader(headers: Har.Header[], name: string): string | null {
 
-    for (const h of headers) {
+    for (const header of headers) {
 
-        if (h.name === name) {
-            return h.value;
+        if (header.name === name) {
+            return header.value;
         }
 
     }
@@ -40,28 +47,27 @@ function getHeader(headers: Har.Header[], name: string): string | null {
 
 }
 
+// Get the CSP type / property that corresponds to the mime-type passed.
 function getContentTypeOption(mime: string): string {
-
-    const m = mime.split(';')[0]; // TODO: remove this?
 
     switch (true) {
 
-        case m.includes('javascript'):
+        case mime.includes('javascript'):
             return 'script-src';
 
-        case m.includes('css'):
+        case mime.includes('css'):
             return 'style-src';
 
-        case m.includes('image'):
+        case mime.includes('image'):
             return 'img-src';
 
-        case m.includes('font'):
+        case mime.includes('font'):
             return 'font-src';
 
-        case (m.includes('audio') || m.includes('video')):
+        case (mime.includes('audio') || mime.includes('video')):
             return 'media-src';
 
-        case m.includes('manifest'):
+        case mime.includes('manifest'):
             return 'manifest-src';
 
         default:
@@ -71,51 +77,59 @@ function getContentTypeOption(mime: string): string {
 
 }
 
+// Generate the actual CSP string.
 function generateCspString(c: CspObject): string {
 
-    let r = 'Content-Security-Policy ';
+    let cspString = 'Content-Security-Policy ';
 
-    for (const o in c) {
+    for (const propery in c) {
 
-        r += `${o} `;
-        r += c[o].map(v => quotedWords.indexOf(v) !== -1 ? `'${v}'` : v).join(' ');
-        r += '; ';
+        cspString += `${propery} `; // Append property name.
+        cspString += c[propery].map(v => quotedWords.indexOf(v) !== -1 ? `'${v}'` : v).join(' '); // Append values, make sure that 'self' and other keywords get quotes.
+        cspString += '; '; // Add a semi-colon at the end.
 
     }
 
-    return r;
+    return cspString;
 
 }
 
-for (const e of data.log.entries) {
+// Loop through the data.
+for (const entry of data.log.entries) {
 
-    const host = String(url.parse(e.request.url).host);
-    const mime = getHeader(e.response.headers, 'content-type');
+    const host = String(url.parse(entry.request.url).host); // Get the host of the request.
+    const mime = getHeader(entry.response.headers, 'content-type'); // Get the mime-type of the response.
 
+    // If the mime-type is falsy of includes html, just continue the loop.
     if (!mime || mime.includes('html')) {
         continue;
     }
 
-    const type = getContentTypeOption(mime);
+    const type = getContentTypeOption(mime); // Get the CSP type.
 
+    // If the csp type if not defined, make sure it's an array.
     if (typeof csp[type] === 'undefined') {
         csp[type] = [];
     }
 
     if (host === baseRequest.host) {
 
+        // If the host of the response is equal to the base-request, push 'self'.
         csp[type].push('self');
 
     } else {
 
+        // Else, push host to the array of hosts to whitelist.
         csp[type].push(host);
 
     }
 
-    for (const p in csp) {
-        csp[p] = [... new Set(csp[p])];
+    // Loop through the CSP object, remove any duplicates in the arrays by creating a set and then spreading that to a new array.
+    for (const property in csp) {
+        csp[property] = [... new Set(csp[property])];
     }
 
 }
 
+// Log the generted CSP String to the console.
 console.log(generateCspString(csp));
